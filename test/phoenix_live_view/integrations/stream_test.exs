@@ -27,7 +27,7 @@ defmodule Phoenix.LiveView.StreamTest do
     assert stream.inserts == []
     assert stream.deletes == []
 
-    assert lv |> render() |> users_in_dom("users") == [
+    assert lv |> render() |> items_in_dom("users") == [
              {"users-1", "chris"},
              {"users-2", "callan"}
            ]
@@ -35,7 +35,7 @@ defmodule Phoenix.LiveView.StreamTest do
     assert lv
            |> element(~S|#users-1 button[phx-click="update"]|)
            |> render_click()
-           |> users_in_dom("users") ==
+           |> items_in_dom("users") ==
              [{"users-1", "updated"}, {"users-2", "callan"}]
 
     assert_pruned_stream(lv)
@@ -43,25 +43,25 @@ defmodule Phoenix.LiveView.StreamTest do
     assert lv
            |> element(~S|#users-2 button[phx-click="move-to-first"]|)
            |> render_click()
-           |> users_in_dom("users") ==
+           |> items_in_dom("users") ==
              [{"users-2", "updated"}, {"users-1", "updated"}]
 
     assert lv
            |> element(~S|#users-2 button[phx-click="move-to-last"]|)
            |> render_click()
-           |> users_in_dom("users") ==
+           |> items_in_dom("users") ==
              [{"users-1", "updated"}, {"users-2", "updated"}]
 
     assert lv
            |> element(~S|#users-1 button[phx-click="delete"]|)
            |> render_click()
-           |> users_in_dom("users") ==
+           |> items_in_dom("users") ==
              [{"users-2", "updated"}]
 
     assert_pruned_stream(lv)
 
     # second stream in LiveView
-    assert lv |> render() |> users_in_dom("admins") == [
+    assert lv |> render() |> items_in_dom("admins") == [
              {"admins-1", "chris-admin"},
              {"admins-2", "callan-admin"}
            ]
@@ -69,7 +69,7 @@ defmodule Phoenix.LiveView.StreamTest do
     assert lv
            |> element(~S|#admins-1 button[phx-click="admin-update"]|)
            |> render_click()
-           |> users_in_dom("admins") ==
+           |> items_in_dom("admins") ==
              [{"admins-1", "updated"}, {"admins-2", "callan-admin"}]
 
     assert_pruned_stream(lv)
@@ -77,31 +77,31 @@ defmodule Phoenix.LiveView.StreamTest do
     assert lv
            |> element(~S|#admins-2 button[phx-click="admin-move-to-first"]|)
            |> render_click()
-           |> users_in_dom("admins") ==
+           |> items_in_dom("admins") ==
              [{"admins-2", "updated"}, {"admins-1", "updated"}]
 
     assert lv
            |> element(~S|#admins-2 button[phx-click="admin-move-to-last"]|)
            |> render_click()
-           |> users_in_dom("admins") ==
+           |> items_in_dom("admins") ==
              [{"admins-1", "updated"}, {"admins-2", "updated"}]
 
     assert lv
            |> element(~S|#admins-1 button[phx-click="admin-delete"]|)
            |> render_click()
-           |> users_in_dom("admins") ==
+           |> items_in_dom("admins") ==
              [{"admins-2", "updated"}]
 
     # resets
 
-    assert lv |> render() |> users_in_dom("users") == [{"users-2", "updated"}]
+    assert lv |> render() |> items_in_dom("users") == [{"users-2", "updated"}]
 
-    StreamLive.run(lv, fn socket ->
-      {:reply, :ok, Phoenix.LiveView.stream(socket, :users, [], reset: true)}
-    end)
+    assert lv
+           |> element(~S|button[phx-click="reset-users"]|)
+           |> render_click()
+           |> items_in_dom("users") == [{"users-1", "chris"}, {"users-2", "callan"}]
 
-    assert lv |> render() |> users_in_dom("users") == []
-    assert lv |> render() |> users_in_dom("admins") == [{"admins-2", "updated"}]
+    assert lv |> render() |> items_in_dom("admins") == [{"admins-2", "updated"}]
   end
 
   test "stream reset on patch", %{conn: conn} do
@@ -109,8 +109,11 @@ defmodule Phoenix.LiveView.StreamTest do
 
     assert has_element?(lv, "h1", "Fruits")
 
-    assert has_element?(lv, "li", "Apples")
-    assert has_element?(lv, "li", "Oranges")
+    assert lv |> render() |> items_in_dom("items") == [
+             {"items-1", "Apples"},
+             {"items-2", "Oranges"},
+             {"items-4", "Tomatoes"}
+           ]
 
     lv
     |> element("a", "Switch")
@@ -120,18 +123,17 @@ defmodule Phoenix.LiveView.StreamTest do
 
     assert has_element?(lv, "h1", "Veggies")
 
-    assert has_element?(lv, "li", "Carrots")
-    assert has_element?(lv, "li", "Tomatoes")
-
-    refute has_element?(lv, "li", "Apples")
-    refute has_element?(lv, "li", "Oranges")
+    assert lv |> render() |> items_in_dom("items") == [
+             {"items-3", "Carrots"},
+             {"items-4", "Tomatoes"}
+           ]
   end
 
   describe "within live component" do
     test "stream operations", %{conn: conn} do
       {:ok, lv, _html} = live(conn, "/stream")
 
-      assert lv |> render() |> users_in_dom("c_users") == [
+      assert lv |> render() |> items_in_dom("c_users") == [
                {"c_users-1", "chris"},
                {"c_users-2", "callan"}
              ]
@@ -139,7 +141,7 @@ defmodule Phoenix.LiveView.StreamTest do
       assert lv
              |> element(~S|#c_users-1 button[phx-click="update"]|)
              |> render_click()
-             |> users_in_dom("c_users") ==
+             |> items_in_dom("c_users") ==
                [{"c_users-1", "updated"}, {"c_users-2", "callan"}]
 
       assert_pruned_stream(lv)
@@ -147,22 +149,22 @@ defmodule Phoenix.LiveView.StreamTest do
       assert lv
              |> element(~S|#c_users-2 button[phx-click="move-to-first"]|)
              |> render_click()
-             |> users_in_dom("c_users") ==
+             |> items_in_dom("c_users") ==
                [{"c_users-2", "updated"}, {"c_users-1", "updated"}]
 
       assert lv
              |> element(~S|#c_users-2 button[phx-click="move-to-last"]|)
              |> render_click()
-             |> users_in_dom("c_users") ==
+             |> items_in_dom("c_users") ==
                [{"c_users-1", "updated"}, {"c_users-2", "updated"}]
 
       assert lv
              |> element(~S|#c_users-1 button[phx-click="delete"]|)
              |> render_click()
-             |> users_in_dom("c_users") ==
+             |> items_in_dom("c_users") ==
                [{"c_users-2", "updated"}]
 
-      assert lv |> render() |> users_in_dom("users") == [
+      assert lv |> render() |> items_in_dom("users") == [
                {"users-1", "chris"},
                {"users-2", "callan"}
              ]
@@ -170,37 +172,37 @@ defmodule Phoenix.LiveView.StreamTest do
       assert lv
              |> element(~S|#users-1 button[phx-click="move"]|)
              |> render_click(%{at: "1", name: "chris-forward"})
-             |> users_in_dom("users") ==
+             |> items_in_dom("users") ==
                [{"users-2", "callan"}, {"users-1", "chris-forward"}]
 
       assert lv
              |> element(~S|#users-1 button[phx-click="move"]|)
              |> render_click(%{at: "0", name: "chris-backward"})
-             |> users_in_dom("users") ==
+             |> items_in_dom("users") ==
                [{"users-1", "chris-backward"}, {"users-2", "callan"}]
 
       assert lv
              |> element(~S|#users-1 button[phx-click="move"]|)
              |> render_click(%{at: "0", name: "chris-same"})
-             |> users_in_dom("users") ==
+             |> items_in_dom("users") ==
                [{"users-1", "chris-same"}, {"users-2", "callan"}]
 
       assert lv
              |> element(~S|#users-2 button[phx-click="move"]|)
              |> render_click(%{at: "1", name: "callan-same"})
-             |> users_in_dom("users") ==
+             |> items_in_dom("users") ==
                [{"users-1", "chris-same"}, {"users-2", "callan-same"}]
 
       # resets
 
-      assert lv |> render() |> users_in_dom("c_users") == [{"c_users-2", "updated"}]
+      assert lv |> render() |> items_in_dom("c_users") == [{"c_users-2", "updated"}]
 
       Phoenix.LiveView.send_update(lv.pid, Phoenix.LiveViewTest.StreamComponent,
         id: "stream-component",
         reset: {:c_users, []}
       )
 
-      assert lv |> render() |> users_in_dom("c_users") == []
+      assert lv |> render() |> items_in_dom("c_users") == []
 
       Phoenix.LiveView.send_update(lv.pid, Phoenix.LiveViewTest.StreamComponent,
         id: "stream-component",
@@ -218,10 +220,9 @@ defmodule Phoenix.LiveView.StreamTest do
     {:ok, lv, _html} = live(conn, "/stream")
 
     assert Phoenix.LiveViewTest.HooksLive.exits_with(lv, ArgumentError, fn ->
-      render_click(lv, "consume-stream-invalid", %{})
-    end) =~ ~r/streams can only be consumed directly by a for comprehension/
+             render_click(lv, "consume-stream-invalid", %{})
+           end) =~ ~r/streams can only be consumed directly by a for comprehension/
   end
-
 
   defp assert_pruned_stream(lv) do
     stream = StreamLive.run(lv, fn socket -> {:reply, socket.assigns.streams.users, socket} end)
@@ -229,7 +230,7 @@ defmodule Phoenix.LiveView.StreamTest do
     assert stream.deletes == []
   end
 
-  defp users_in_dom(html, parent_id) do
+  defp items_in_dom(html, parent_id) do
     html
     |> DOM.parse()
     |> DOM.all("##{parent_id} > *")

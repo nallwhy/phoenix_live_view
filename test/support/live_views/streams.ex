@@ -10,6 +10,7 @@ defmodule Phoenix.LiveViewTest.StreamLive do
     <div :for={{id, _user} <- Enum.map(@streams.users, &(&1))} id={id} />
     """
   end
+
   def render(assigns) do
     ~H"""
     <div id="users" phx-update="stream">
@@ -22,6 +23,7 @@ defmodule Phoenix.LiveViewTest.StreamLive do
         <button phx-click="move" phx-value-id={id} phx-value-name="moved" phx-value-at="1">move</button>
       </div>
     </div>
+    <button phx-click="reset-users">reset users</button>
     <div id="admins" phx-update="stream">
       <div :for={{id, user} <- @streams.admins} id={id}>
         <%= user.name %>
@@ -93,6 +95,10 @@ defmodule Phoenix.LiveViewTest.StreamLive do
      socket
      |> stream_delete_by_dom_id(:admins, dom_id)
      |> stream_insert(:admins, user, at: -1)}
+  end
+
+  def handle_event("reset-users", _params, socket) do
+    {:noreply, socket |> stream(:users, [user(1, "chris"), user(2, "callan")], reset: true)}
   end
 
   def handle_event("consume-stream-invalid", _, socket) do
@@ -177,7 +183,8 @@ defmodule Phoenix.LiveViewTest.HealthyLive do
   @healthy_stuff %{
     "fruits" => [
       %{id: 1, name: "Apples"},
-      %{id: 2, name: "Oranges"}
+      %{id: 2, name: "Oranges"},
+      %{id: 4, name: "Tomatoes"}
     ],
     "veggies" => [
       %{id: 3, name: "Carrots"},
@@ -209,11 +216,7 @@ defmodule Phoenix.LiveViewTest.HealthyLive do
     "/healthy/fruits"
   end
 
-  def mount(%{"category" => category} = _params, _session, socket) do
-    socket =
-      socket
-      |> assign(:category, category)
-
+  def mount(_params, _session, socket) do
     {:ok, socket}
   end
 
