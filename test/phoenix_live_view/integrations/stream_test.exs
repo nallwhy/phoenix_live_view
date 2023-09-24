@@ -127,6 +127,20 @@ defmodule Phoenix.LiveView.StreamTest do
              {"items-3", "Carrots"},
              {"items-4", "Tomatoes"}
            ]
+
+    lv
+    |> element("a", "Switch")
+    |> render_click()
+
+    assert_patched(lv, "/healthy/fruits")
+
+    assert has_element?(lv, "h1", "Fruits")
+
+    assert lv |> render() |> items_in_dom("items") == [
+             {"items-1", "Apples"},
+             {"items-2", "Oranges"},
+             {"items-4", "Tomatoes"}
+           ]
   end
 
   describe "within live component" do
